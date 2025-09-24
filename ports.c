@@ -9,6 +9,7 @@
 //------------------------------------------------------------------------------
 
 #include "ports.h"
+#include "functions.h"
 #include "msp430.h"
 #include "macros.h"
 

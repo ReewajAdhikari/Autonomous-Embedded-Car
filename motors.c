@@ -41,41 +41,61 @@ extern unsigned int figure8_step;
 // Globals
 extern unsigned char dispEvent;
 extern volatile unsigned char display_changed;
-extern unsigned char event;
-extern char display_line[4][11];
+
+const char default_display[4][11] = {
+    "   NCSU   ",
+    " WOLFPACK ",
+    "  ECE306  ",
+    "  GP I/O  "
+};
+
 
 // FORWARD Commands
 void motorsForward(void){
-    //  Select and Turn Off Backlight
-    //    backlightControl(0);
-
     //  Turn ON Motors
-    P6SEL0 &= ~R_FORWARD;
-    P6SEL1 &= ~R_FORWARD;
-    P6OUT  |=  R_FORWARD;
-    P6DIR  |=  R_FORWARD;
-
-    P6SEL0 &= ~L_FORWARD;
-    P6SEL1 &= ~L_FORWARD;
-    P6OUT  |=  L_FORWARD;
-    P6DIR  |=  L_FORWARD;
+    if (right_count_time > 0) {
+        P6OUT |= R_FORWARD;}    
+    if (left_count_time > 0) { 
+        P6OUT |= L_FORWARD;
+    }
 }
 
 // STOP Commands
 void motorStop(void){
     //  Turn OFF Motors
-    P6SEL0 &= ~R_FORWARD;
-    P6SEL1 &= ~R_FORWARD;
     P6OUT  &= ~R_FORWARD;
-    P6DIR  &= ~R_FORWARD;
-
-    P6SEL0 &= ~L_FORWARD;
-    P6SEL1 &= ~L_FORWARD;
     P6OUT  &= ~L_FORWARD;
-    P6DIR  &= ~L_FORWARD;
+
 }
 
+void move(int distance_cm, int turn){
+    if(turn > 50)  turn = 50;
+    if(turn < -50) turn = -50;
 
+    // Convert distance into internal "segments"
+    travel_distance = (unsigned int) distance_cm;
+
+    // Base motor "on-times"
+    wheel_count_time = 10;              // cycle length
+
+    // Calculate scaling from turn ratio
+    float left_scale, right_scale;
+    if(turn == 0){
+        left_scale = 1;
+        right_scale = 1;
+    } else if(turn < 0){
+        // Negative turn -> bias left motor
+        left_scale  = 1.0f;
+        right_scale = 1.0f - ((float)(-turn) / 50.0f);  
+    } else {
+        // Positive turn -> bias right motor
+        right_scale = 1.0f;
+        left_scale  = 1.0f - ((float)(turn) / 50.0f);
+    }
+    // Apply motor calibration AND turn scaling
+    right_count_time = (unsigned int)(right_scale * 10);
+    left_count_time  = (unsigned int)(left_scale  * 6.7);
+}
 
 
 // Movement Cases
@@ -92,31 +112,19 @@ void Move_Shape(void){
         // Run actual code to make Shape
         switch(event){
         case STRAIGHT:
-            travel_distance = 20;
-            right_count_time = 10;
-            left_count_time = 4;
-            wheel_count_time = 9;
+            move(20, 0);
             run_case();
             break;
         case CIRCLE:
-            travel_distance = 190; // 85 Best so Far, Little Under //175
-            right_count_time = 1;
-            left_count_time = 10;
-            wheel_count_time = 10;
+            move(100, 40);
             run_case();
             break;
         case TRIANGLE:
-            travel_distance = 10;
-            right_count_time = 10;
-            left_count_time = 10;
-            wheel_count_time = 10;
+            move(20, 0);
             run_case();
             break;
         case TRIANGLE_CURVE:
-            travel_distance = 15;
-            right_count_time = 0;
-            left_count_time = 10;
-            wheel_count_time = 10;
+            move(10, -50);
             run_case();
             break; // NEW??
         case FIGURE8C1:
@@ -157,7 +165,6 @@ void wait_case(void){
     }
 }
 
-
 void start_case(void){
     cycle_time = 0;
     right_motor_count = 0;
@@ -166,8 +173,6 @@ void start_case(void){
     motorsForward();
     state = RUN;
 }
-
-
 
 void end_case(void){
     motorStop();
@@ -191,10 +196,9 @@ void end_case(void){
             event = NONE;
         }else if(triangle_step==12){
             event = NONE;
-            strcpy(display_line[0], "   NCSU   ");
-            strcpy(display_line[1], " WOLFPACK ");
-            strcpy(display_line[2], "  ECE306  ");
-            strcpy(display_line[3], "  GP I/O  ");
+            int i;
+            for(i=0; i<4; i++)
+            strcpy(display_line[i], default_display[i]);
             display_changed = TRUE;
             backlight_status = 1;
             triangle_step = 0;
@@ -212,10 +216,9 @@ void end_case(void){
             event = NONE;
         }else if(triangle_step==12){
             event = NONE;
-            strcpy(display_line[0], "   NCSU   ");
-            strcpy(display_line[1], " WOLFPACK ");
-            strcpy(display_line[2], "  ECE306  ");
-            strcpy(display_line[3], "  GP I/O  ");
+            int i;
+            for(i=0; i<4; i++)
+            strcpy(display_line[i], default_display[i]);
             display_changed = TRUE;
             backlight_status = 1;
             triangle_step = 0;
@@ -230,10 +233,9 @@ void end_case(void){
 
     default:
         event = NONE;
-        strcpy(display_line[0], "   NCSU   ");
-        strcpy(display_line[1], " WOLFPACK ");
-        strcpy(display_line[2], "  ECE306  ");
-        strcpy(display_line[3], "  GP I/O  ");
+        int i;
+            for(i=0; i<4; i++)
+            strcpy(display_line[i], default_display[i]);
         display_changed = TRUE;
         backlight_status = 1;
         break;

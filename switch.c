@@ -106,8 +106,6 @@ void Switch1_Process(void){
 
             }
 
-
-
         }
     }
     if (count_debounce_SW1 <= DEBOUNCE_TIME){
